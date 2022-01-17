@@ -1,6 +1,9 @@
 App = {
+    contracts: {},
     load: async () => {
         await App.loadWeb3()
+        await App.loadAccount()
+        await App.loadContract()
     },
 
     // https://medium.com/metamask/https-medium-com-metamask-breaking-change-injecting-web3-7722797916a8
@@ -36,8 +39,18 @@ App = {
         }
     },
 
+    loadAccount: async () => {
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
+        App.account = accounts[0];
+        console.log(accounts[0]);
+    },
 
+    loadContract: async () => {
+        const todoList = await $.getJSON('TodoList.json');
 
+        App.contracts.TodoList = TruffleContract(todoList);
+        App.contracts.TodoList.setProvider(App.web3Provider);
+    },
 }
 $(() => {
     $(window).load(() => {
