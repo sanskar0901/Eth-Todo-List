@@ -1,9 +1,11 @@
 App = {
+    loading: false,
     contracts: {},
     load: async () => {
         await App.loadWeb3()
         await App.loadAccount()
         await App.loadContract()
+        await App.render()
     },
 
     // https://medium.com/metamask/https-medium-com-metamask-breaking-change-injecting-web3-7722797916a8
@@ -50,7 +52,73 @@ App = {
 
         App.contracts.TodoList = TruffleContract(todoList);
         App.contracts.TodoList.setProvider(App.web3Provider);
+
+        App.todoList = await App.contracts.TodoList.deployed()
     },
+
+    render: async () => {
+
+        if (App.loading) {
+            return
+        }
+        App.setLoading(true)
+        $('#account').html(App.account)
+
+        await App.renderTask()
+
+
+        App.setLoading(false)
+    },
+
+    renderTask: async () => {
+        const taskCount = await App.todoList.taskCount()
+        const $taskTemplate = $('.taskTemplate')
+
+        for (var i = 1; i <= taskCount; i++) {
+            const task = await App.todoList.tasks(i)
+            const taskId = task[0].toNumber()
+            const taskContent = task[1]
+            const taskCompleted = task[2]
+
+            const $newTaskTemplate = $taskTemplate.clone()
+            $newTaskTemplate.find('.content').html(taskContent)
+            $newTaskTemplate.find('input')
+                .prop('name', taskId)
+                .prop('checked', taskCompleted)
+            // .on('click', App.toggleCompleted)
+
+            if (taskCompleted) {
+                $('#completedTaskList').append($newTaskTemplate)
+            } else {
+                $('#taskList').append($newTaskTemplate)
+            }
+
+            $newTaskTemplate.show()
+        }
+    },
+
+
+    createTask: async () => {
+        App.setLoading(true)
+        const content = $('#newTask').val()
+        await App.todoList.createTask(content, { from: App.account })
+        window.location.reload()
+
+    },
+
+
+    setLoading: (boolean) => {
+        App.loading = boolean
+        const loader = $('#loader')
+        const content = $('#content')
+        if (boolean) {
+            loader.show()
+            content.hide()
+        } else {
+            loader.hide()
+            content.show()
+        }
+    }
 }
 $(() => {
     $(window).load(() => {
